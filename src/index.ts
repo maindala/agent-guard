@@ -55,6 +55,55 @@ export interface ToolCallTelemetryEvent {
   findingClasses?: string[];
 }
 
+// Validation limits, mirrored from mcp-gateway's validateTelemetryIngestBody()
+// — that function is the source of truth for the wire contract. Duplicated
+// rather than imported because this package ships independently of the
+// gateway, matching the per-package-duplication convention used elsewhere in
+// this codebase. Kept byte-identical to @maindala/telemetry's copy: the two
+// implement the same wire contract and must not drift.
+const TELEMETRY_KINDS = ['tool_call', 'a2a_call'] as const;
+const TELEMETRY_DECISIONS = ['allow', 'deny', 'redact', 'flag', 'observed'] as const;
+const MAX_STRING_FIELD_LEN = 200;
+const MAX_FINDING_CLASSES = 10;
+const MAX_FINDING_CLASS_LEN = 50;
+
+// Returns an error string describing the first rule the event breaks, or null
+// if it's valid. Checks the VALUES of the allowed fields — the field allowlist
+// in pushToolCallTelemetry only controls which keys are forwarded, so without
+// this an untyped JS caller or a spread could still put arbitrary-length
+// arbitrary content into `findingClasses`, `toolName`, etc. and it would reach
+// the wire before the server's own allowlist rejected it.
+function validateTelemetryEvent(event: ToolCallTelemetryEvent): string | null {
+  if (!TELEMETRY_KINDS.includes(event.kind)) {
+    return `\`kind\` must be one of: ${TELEMETRY_KINDS.join(', ')}`;
+  }
+  for (const field of ['toolName', 'target'] as const) {
+    const value = event[field];
+    if (typeof value !== 'string' || value.length === 0 || value.length > MAX_STRING_FIELD_LEN) {
+      return `\`${field}\` must be a non-empty string up to ${MAX_STRING_FIELD_LEN} chars`;
+    }
+  }
+  if (event.latencyMs !== undefined) {
+    if (typeof event.latencyMs !== 'number' || !Number.isFinite(event.latencyMs) || event.latencyMs < 0) {
+      return '`latencyMs` must be a non-negative finite number';
+    }
+  }
+  if (event.decision !== undefined && !TELEMETRY_DECISIONS.includes(event.decision)) {
+    return `\`decision\` must be one of: ${TELEMETRY_DECISIONS.join(', ')}`;
+  }
+  if (event.findingClasses !== undefined) {
+    if (!Array.isArray(event.findingClasses) || event.findingClasses.length > MAX_FINDING_CLASSES) {
+      return `\`findingClasses\` must be an array of at most ${MAX_FINDING_CLASSES} strings`;
+    }
+    for (const c of event.findingClasses) {
+      if (typeof c !== 'string' || c.length === 0 || c.length > MAX_FINDING_CLASS_LEN) {
+        return `\`findingClasses\` entries must be non-empty strings up to ${MAX_FINDING_CLASS_LEN} chars (class names only, never matched content)`;
+      }
+    }
+  }
+  return null;
+}
+
 // Cache of policy-check responses keyed by toolRef, with 30-second TTL.
 // Avoids a round-trip to the gateway per tool call.
 interface CachedCheck {
@@ -184,6 +233,16 @@ export class AgentGuard {
     );
     if (droppedKeys.length > 0) {
       console.warn(`[agent-guard] dropped non-metadata field(s) before sending telemetry: ${droppedKeys.join(', ')}`);
+    }
+
+    // Reject the whole event rather than salvaging the valid fields: the server
+    // rejects the entire request, so anything less would leave client and server
+    // disagreeing about what a valid event is. Warn and return; never throw —
+    // the never-throws contract above is load-bearing for callers.
+    const invalid = validateTelemetryEvent(safeEvent);
+    if (invalid) {
+      console.warn(`[agent-guard] telemetry event not sent — ${invalid}`);
+      return;
     }
 
     try {
