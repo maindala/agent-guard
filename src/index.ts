@@ -35,10 +35,7 @@ export interface AgentGuardConfig {
   orgSlug?:     string;
   // mAIndala MCP gateway base URL (default: https://mcp.maindala.com)
   gatewayUrl?: string;
-  // mAIndala catalog base URL. The catalog service has no stable public
-  // domain of its own yet — only its Cloud Run URL — so that's the default
-  // below. Pass your own value here if that ever changes, rather than
-  // waiting on a package upgrade.
+  // mAIndala catalog base URL (default: https://api.maindala.com)
   catalogUrl?: string;
 }
 
@@ -118,7 +115,7 @@ export class AgentGuard {
 
   constructor(private readonly config: AgentGuardConfig) {
     this.gatewayUrl = config.gatewayUrl?.replace(/\/$/, '') ?? 'https://mcp.maindala.com';
-    this.catalogUrl = config.catalogUrl?.replace(/\/$/, '') ?? 'https://catalog-service-x5yekys7wq-uw.a.run.app';
+    this.catalogUrl = config.catalogUrl?.replace(/\/$/, '') ?? 'https://api.maindala.com';
   }
 
   // Pre-flight check: ask the governance plane whether this tool call is allowed.
