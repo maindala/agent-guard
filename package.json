@@ -1,0 +1,40 @@
+{
+  "name": "@maindala/agent-guard",
+  "version": "0.2.2",
+  "description": "Governance SDK for external agents — policy pre-flight, DLP redaction, and telemetry push",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "pretest": "npm run build",
+    "test": "node examples/run-all.mjs",
+    "examples": "npm run build && node examples/run-all.mjs"
+  },
+  "keywords": ["maindala", "governance", "agent", "dlp", "policy"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maindala/agent-guard.git"
+  },
+  "homepage": "https://github.com/maindala/agent-guard#readme",
+  "bugs": {
+    "url": "https://github.com/maindala/agent-guard/issues"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
