@@ -1,6 +1,6 @@
 {
   "name": "@maindala/agent-guard",
-  "version": "0.2.5",
+  "version": "1.0.0",
   "description": "Governance SDK for external agents — policy pre-flight, DLP redaction, and telemetry push",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,23 +8,37 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./adapters/mcp": {
+      "types": "./dist/adapters/mcp.d.ts",
+      "default": "./dist/adapters/mcp.js"
+    },
+    "./adapters/vercel-ai": {
+      "types": "./dist/adapters/vercel-ai.d.ts",
+      "default": "./dist/adapters/vercel-ai.js"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "pretest": "npm run build",
-    "test": "node examples/run-all.mjs",
-    "examples": "npm run build && node examples/run-all.mjs"
+    "test": "vitest run",
+    "examples": "npm run build && node examples/run-all.mjs",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": ["maindala", "governance", "agent", "dlp", "policy"],
+  "keywords": [
+    "maindala",
+    "governance",
+    "agent",
+    "dlp",
+    "policy"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -34,7 +48,23 @@
   "bugs": {
     "url": "https://github.com/maindala/agent-guard/issues"
   },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": ">=1.0.0",
+    "ai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "typescript": "^5.5.4"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ai": "^7.0.58",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.1",
+    "zod": "^3.25.76"
   }
 }
