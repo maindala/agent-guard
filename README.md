@@ -1,5 +1,7 @@
 # @maindala/agent-guard
 
+[![CI](https://github.com/maindala/agent-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/maindala/agent-guard/actions/workflows/ci.yml)
+
 Governance SDK for external agents — policy pre-flight checks, DLP redaction, and telemetry push to
 the mAIndala governance plane. Opt-in: call the guard from your own agent's code before/after tool
 invocations to enforce your org's governance policy locally, without routing every tool call through

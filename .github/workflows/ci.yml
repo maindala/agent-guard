@@ -1,0 +1,35 @@
+# Build + type-check + test + examples, on every push and pull request, across the four
+# Node versions this package claims to support. Runs on standard GitHub-hosted runners only
+# (`ubuntu-latest`) — larger runners are billed even on public repos, and this workflow must
+# stay free. Third-party actions are pinned by commit SHA, not a mutable tag.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Default least-privilege token: this workflow only reads the repo, never writes.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22, 24]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run type-check
+      - run: npm test
+      # Runs the offline examples (against the local stub gateway plus the real
+      # @modelcontextprotocol/sdk and `ai` packages) as a regression net — a past incident
+      # had an example silently call production because it wasn't exercised anywhere.
+      - run: npm run examples
