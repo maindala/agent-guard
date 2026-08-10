@@ -1,0 +1,72 @@
+# Publishes @maindala/agent-guard to npm via trusted publishing (OIDC) — no long-lived
+# npm token exists anywhere, in this workflow or as a repo/org secret.
+#
+# Triggers ONLY on a published GitHub Release. Deliberately NOT on push/merge to `main`
+# (see CI's ci.yml for that) — a merge must not be able to publish. The `verify` job
+# re-builds and re-tests the released commit from a clean checkout (never trusts a prior
+# CI run); the `publish` job then runs behind the `npm-publish` Environment, which carries
+# a required-reviewer rule — every real publish needs an explicit, logged, per-version
+# approval click tied to a GitHub identity, the CI-side replacement for the old
+# interactive npm 2FA step. See RELEASING.md for the one-time npmjs.com trusted-publisher
+# configuration this depends on, and for the `scripts/publish-package.sh` break-glass path
+# in the private monorepo.
+#
+# Third-party actions pinned by commit SHA, not a mutable tag. `ubuntu-latest` only —
+# larger runners are billed even on public repos.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+# Default least-privilege token for the whole workflow; `id-token: write` is added only on
+# the publish job below, and only for as long as it needs to exchange for an OIDC token.
+permissions:
+  contents: read
+
+jobs:
+  # Re-run the package's own build + test + examples suite against the exact released
+  # commit before anything is published — a release is not presumed correct just because
+  # some earlier CI run of the same branch passed.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run type-check
+      - run: npm test
+      - run: npm run examples
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    # Required-reviewer gate: this job pauses here until an approver configured on the
+    # `npm-publish` Environment clicks approve in the Actions run — the human gate this
+    # design moves rather than removes. See RELEASING.md.
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write # OIDC token for npm trusted publishing — this job only.
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run build
+      # Trusted publishing requires npm CLI >= 11.5.1 (verified against npm's live docs,
+      # 2026-08 — see RELEASING.md); don't rely on whatever version ships bundled with
+      # actions/setup-node's Node 24.
+      - run: npm install -g npm@latest
+      # No NODE_AUTH_TOKEN / .npmrc token anywhere. npm exchanges this job's OIDC token
+      # (id-token: write, above) for a short-lived publish credential via the trusted
+      # publisher configured on npmjs.com for this exact repo + workflow filename +
+      # environment (RELEASING.md). Provenance is generated automatically as part of that
+      # exchange — no --provenance flag needed.
+      - run: npm publish --access public

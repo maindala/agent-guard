@@ -187,6 +187,12 @@ request is sent and a warning is logged naming what was dropped, rather than bei
 - `@maindala/agent-guard/adapters/mcp` → `wrapMcpTool(guard, toolName, handler)` — MCP SDK adapter.
 - `@maindala/agent-guard/adapters/vercel-ai` → `wrapVercelAiTool(guard, toolName, toolDef)` — Vercel AI SDK adapter.
 
+## Releasing
+
+See [RELEASING.md](./RELEASING.md) — publishing runs through a GitHub Release +
+trusted-publishing CI workflow with a required-reviewer approval gate, not a local
+`npm publish`.
+
 ## License
 
 MIT

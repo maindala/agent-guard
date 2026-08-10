@@ -1,0 +1,5 @@
+# Requires review before a change to the CI/release pipeline itself can be merged.
+# release.yml is what has publish rights via npm trusted publishing (OIDC) — a
+# self-modifying, unreviewed publish workflow would defeat the entire point of the
+# npm-publish Environment's required-reviewer gate. See RELEASING.md.
+/.github/ @maindala-it
