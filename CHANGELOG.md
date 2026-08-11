@@ -5,11 +5,24 @@ All notable changes to `@maindala/agent-guard` are documented here. Format follo
 against what is actually live on npm (`npm view @maindala/agent-guard versions`), not
 just what shipped in source.
 
-## [1.0.1] — Unreleased
+## [1.0.1] — 2026-08-11
 
-No functional change.
+No functional change. Date corrected after the fact (confirmed via `npm view
+@maindala/agent-guard time --json`, not guessed) — this is the same defect the entry
+below describes, recurring the very next day, which is what motivated the release-time
+changelog-date gate this release adds (`scripts/check-changelog-date.mjs`, see RELEASING.md).
+**The published `1.0.1` tarball on npm still contains this heading as "Unreleased"** —
+CHANGELOG.md ships inside the tarball built at publish time, and npm versions are
+immutable, so that copy can never be corrected. Only this repo copy, and only going
+forward, is fixed.
 
 ### Fixed
+- **This entry itself.** `CHANGELOG.md` headed this release "## [1.0.1] — Unreleased"
+  while 1.0.1 was already live on npm — the identical defect QFX-3 fixed by hand for
+  `1.0.0` one day earlier, recurring immediately. A release-time gate
+  (`scripts/check-changelog-date.mjs`, wired into `release.yml`'s `verify` job) now fails
+  any future release whose top changelog entry isn't a real, matching, ISO-dated heading
+  — see RELEASING.md.
 - This changelog headed the `1.0.0` entry below "Unreleased" for several days after
   `1.0.0` was actually live on npm (confirmed via `npm view`) — a public-facing accuracy
   gap on the release notes for the version consumers were already installing. The date

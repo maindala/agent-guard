@@ -8,10 +8,21 @@ replaces the old flow of an owner running `npm publish` locally behind an intera
 
 ## How to cut a release
 
-1. Bump `version` in `package.json` and add an entry to `CHANGELOG.md` (this repo
-   backfills the changelog against what's actually live on npm — keep that habit). This
-   can go directly to `main` as usual — branch protection on this repo only requires a
-   reviewed PR for changes under `.github/` (see below), not for every change.
+1. Bump `version` in `package.json` and add a dated entry to `CHANGELOG.md` **in the same
+   release-prep commit** — `## [X.Y.Z] - YYYY-MM-DD` with today's real date, not
+   `Unreleased`, not `TBD`, not left blank. This can go directly to `main` as usual —
+   branch protection on this repo only requires a reviewed PR for changes under `.github/`
+   (see below), not for every change.
+
+   **The release will fail if you skip this.** `release.yml`'s `verify` job runs
+   `scripts/check-changelog-date.mjs`, which fails the release before `npm publish` runs
+   if the top `CHANGELOG.md` entry isn't a real ISO date matching both `package.json` and
+   the tag being released. This exists because `CHANGELOG.md` ships **inside** the
+   published tarball — it's built from the released commit before any post-publish fix
+   could ever run — and **once a version is published, npm will not let it be
+   re-published or edited.** An undated (or wrongly dated) changelog entry on an already-
+   live version is permanent; the only fix is a new version. Get the date right before you
+   tag, not after.
 2. If the change instead touches `.github/` — most importantly `release.yml` itself —
    it must go through a PR, and `.github/CODEOWNERS` requires that PR to be approved by
    an owner before it can merge. This is deliberate: an unreviewed edit to the publish

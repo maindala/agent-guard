@@ -36,6 +36,15 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # Fails the release before anything is built if CHANGELOG.md's top entry for this
+      # version isn't a real, matching, ISO-dated heading. Runs first because it's cheap and
+      # catches the recurring "published as Unreleased" defect (see the script's own header
+      # comment for why this can't just stamp the date after publish instead). No new
+      # permissions — reads files already checked out; this job stays contents: read.
+      - name: Check CHANGELOG.md is dated for this release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/check-changelog-date.mjs
       - run: npm ci
       - run: npm run build
       - run: npm run type-check
