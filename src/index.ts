@@ -49,9 +49,9 @@ export interface DecisionRecord {
 export interface AgentGuardConfig {
   // mx_ Bearer key issued by your org admin in the mAIndala Governance tab.
   // Optional: only checkTool/applyDlp/checkAndRedact/pushTelemetry (the org-
-  // governed methods) need it. pushToolCallTelemetry (Free Telemetry Wedge P2)
-  // takes its own mt_ token per call and needs neither this nor orgSlug — that's
-  // the whole point of the free, zero-setup tier.
+  // governed methods) need it. pushToolCallTelemetry takes its own mt_ token
+  // per call and needs neither this nor orgSlug — that's the whole point of
+  // the free, zero-setup tier.
   apiKey?:      string;
   // Your org's slug (e.g. "acme-corp") — used for the telemetry endpoint
   orgSlug?:     string;
@@ -124,9 +124,9 @@ function jitterDelay(attempt: number, baseDelayMs: number, maxDelayMs: number): 
   return Math.random() * cap;
 }
 
-// Free Telemetry Wedge P2: a single governed action, metadata-only. Never carries
-// prompts/tool-args/results — only what tool ran, its target, latency, and the
-// governance decision (if any). Mirrors the shape mcp-gateway's /telemetry/ingest
+// A single governed action, metadata-only. Never carries prompts/tool-args/
+// results — only what tool ran, its target, latency, and the governance
+// decision (if any). Mirrors the shape the gateway's /telemetry/ingest
 // validates server-side.
 export interface ToolCallTelemetryEvent {
   kind:            'tool_call' | 'a2a_call';
@@ -137,7 +137,7 @@ export interface ToolCallTelemetryEvent {
   findingClasses?: string[];
 }
 
-// Validation limits, mirrored from mcp-gateway's validateTelemetryIngestBody()
+// Validation limits, mirrored from the gateway's validateTelemetryIngestBody()
 // — that function is the source of truth for the wire contract. Duplicated
 // rather than imported because this package ships independently of the
 // gateway, matching the per-package-duplication convention used elsewhere in
@@ -465,8 +465,8 @@ export class AgentGuard {
     }
   }
 
-  // Free Telemetry Wedge P2: push a single metadata-only tool-call/A2A-delegation
-  // event to the free tail (`maindala tail`). Takes its OWN mt_ token per call —
+  // Push a single metadata-only tool-call/A2A-delegation event to the free
+  // tail (`maindala tail`). Takes its OWN mt_ token per call —
   // deliberately does NOT use config.apiKey/orgSlug, so this works standalone
   // with zero org/governance setup (`new AgentGuard({})` is enough). Async
   // fire-and-forget, same never-throws contract as pushTelemetry: observability

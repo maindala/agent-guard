@@ -1,6 +1,6 @@
 {
   "name": "@maindala/agent-guard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Governance SDK for external agents — policy pre-flight, DLP redaction, and telemetry push",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

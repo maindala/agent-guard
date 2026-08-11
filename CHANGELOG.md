@@ -5,7 +5,20 @@ All notable changes to `@maindala/agent-guard` are documented here. Format follo
 against what is actually live on npm (`npm view @maindala/agent-guard versions`), not
 just what shipped in source.
 
-## [1.0.0] — Unreleased
+## [1.0.1] — Unreleased
+
+No functional change.
+
+### Fixed
+- This changelog headed the `1.0.0` entry below "Unreleased" for several days after
+  `1.0.0` was actually live on npm (confirmed via `npm view`) — a public-facing accuracy
+  gap on the release notes for the version consumers were already installing. The date
+  is now correct.
+- Source comments referencing an internal initiative codename ("Free Telemetry Wedge P2")
+  and an internal service's private codename genericized to describe behavior instead of
+  internal architecture — comment-only, zero behavior change. (QFX-2)
+
+## [1.0.0] — 2026-08-10
 
 **Breaking change — read this before upgrading.** `checkTool()`'s default posture when
 the governance plane is unreachable flips from **fail-open** to **fail-closed**.
