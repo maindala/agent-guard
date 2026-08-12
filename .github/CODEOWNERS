@@ -3,3 +3,5 @@
 # self-modifying, unreviewed publish workflow would defeat the entire point of the
 # npm-publish Environment's required-reviewer gate. See RELEASING.md.
 /.github/ @maindala-it
+
+# probe: verifying whether a .github/ PR can be merged by its author
