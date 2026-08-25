@@ -2,4 +2,10 @@
 # release.yml is what has publish rights via npm trusted publishing (OIDC) — a
 # self-modifying, unreviewed publish workflow would defeat the entire point of the
 # npm-publish Environment's required-reviewer gate. See RELEASING.md.
-/.github/ @maindala-it
+# Two owners deliberately: GitHub never requests or counts an approving review
+# from a PR's own author, so a sole owner that is also the account opening PRs
+# (maindala-it, which the gh CLI authenticates as) leaves this rule satisfiable
+# by the very change it is meant to gate. Verified by probe 2026-08-25 — a
+# .github/ PR came back CLEAN/MERGEABLE with no review requested. A second,
+# distinct owner is what makes the requirement real.
+/.github/ @maindala-it @esskap-projects
