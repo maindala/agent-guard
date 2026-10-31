@@ -3,6 +3,9 @@
 // mAIndala governance plane. Opt-in: add to your agent's code and call the guard
 // before/after tool invocations to enforce your org's governance policy locally.
 
+import { ContentCheckClient, type ContentCheckOptions, type ContentCheckResult } from './content-check.js';
+export type { ContentCheckOptions, ContentCheckResult, ContentDirection, OnUnavailable } from './content-check.js';
+
 export interface DlpPattern {
   name:        string;
   regex:       string;
@@ -77,6 +80,8 @@ export interface AgentGuardConfig {
   // guard error and routed through failMode like any other, and is NEVER
   // retried (see maxRetries below) — it has already spent its full budget.
   timeoutMs?: number;
+  // Wait for a checkContent() answer (default 20000). Text takes longer to check than a tool name, so this is separate.
+  contentTimeoutMs?: number;
   // Bounded retry with jitter, applied only to transport-level failures
   // (network errors, non-2xx status, bad JSON) — never to a timeout, and
   // never to a successfully-parsed decision even when that decision is
@@ -241,9 +246,22 @@ export class AgentGuard {
   private breakerOpenedAt = 0;
   private consecutiveFailures = 0;
 
+  private readonly contentChecker: ContentCheckClient;
+
   constructor(private readonly config: AgentGuardConfig) {
     this.gatewayUrl = config.gatewayUrl?.replace(/\/$/, '') ?? 'https://mcp.maindala.com';
     this.catalogUrl = config.catalogUrl?.replace(/\/$/, '') ?? 'https://api.maindala.com';
+    this.contentChecker = new ContentCheckClient({
+      ...(config.apiKey !== undefined ? { apiKey: config.apiKey } : {}),
+      gatewayUrl: this.gatewayUrl,
+      ...(config.timeoutMs !== undefined ? { timeoutMs: config.timeoutMs } : {}),
+      ...(config.contentTimeoutMs !== undefined ? { contentTimeoutMs: config.contentTimeoutMs } : {}),
+      ...(config.maxRetries !== undefined ? { maxRetries: config.maxRetries } : {}),
+      ...(config.retryBaseDelayMs !== undefined ? { retryBaseDelayMs: config.retryBaseDelayMs } : {}),
+      ...(config.retryMaxDelayMs !== undefined ? { retryMaxDelayMs: config.retryMaxDelayMs } : {}),
+      ...(config.breakerThreshold !== undefined ? { breakerThreshold: config.breakerThreshold } : {}),
+      ...(config.breakerCooldownMs !== undefined ? { breakerCooldownMs: config.breakerCooldownMs } : {}),
+    });
   }
 
   // Resolves the effective fail mode for a given tool: a per-tool override
@@ -423,6 +441,13 @@ export class AgentGuard {
     console.warn(`[agent-guard] policy-check ${outcome.timeout ? 'timed out' : 'failed'} for ${toolRef} — resolving via failMode='${this.resolveFailMode(toolRef)}'`);
     this.emitDecision(toolRef, result, Date.now() - start, false, outcome.timeout ? 'timeout' : 'guard_error');
     return result;
+  }
+
+  // Checks text bound for, or returned by, an LLM call against the content check your organization may have configured.
+  // `options.onUnavailable` is required ('block' or 'allow'): it decides what happens to the text when the check cannot be reached.
+  // Always use `result.text`, and treat action 'block' as "do not send / do not use". The text is never logged or kept by this SDK.
+  async checkContent(text: string, options: ContentCheckOptions): Promise<ContentCheckResult> {
+    return this.contentChecker.check(text, options);
   }
 
   // Apply DLP redaction patterns to a string (e.g. tool response text).

@@ -5,6 +5,16 @@ All notable changes to `@maindala/agent-guard` are documented here. Format follo
 against what is actually live on npm (`npm view @maindala/agent-guard versions`), not
 just what shipped in source.
 
+## [1.1.0] — 2026-10-31
+
+### Added
+- **`checkContent(text, { direction, onUnavailable })`.** Checks text bound for, or returned by, an LLM call against the
+  content check your organization may have configured, and returns `pass`, `redact` (use the returned text) or `block`. An
+  organization with none configured gets a plain `pass`. `onUnavailable` (`'block'` or `'allow'`) is **required** and has no default:
+  it decides what happens to the text when the gateway cannot answer. New option `contentTimeoutMs` (default 20 seconds). The text is
+  never logged, cached or kept by this package. Needs a gateway that has the `/broker/content-check` route; against an older gateway
+  the call resolves through `onUnavailable`.
+
 ## [1.0.1] — 2026-08-11
 
 No functional change. Date corrected after the fact (confirmed via `npm view
