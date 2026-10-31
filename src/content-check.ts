@@ -95,8 +95,9 @@ export class ContentCheckClient {
           signal: controller.signal,
         });
         if (res.ok) {
-          // The timer stays armed while the body is read, as in checkTool().
-          const answer = parseAnswer(await res.json().catch(() => null));
+          // The timer stays armed while the body is read, as in checkTool(). A stall surfaces as AbortError in the catch below, so it is
+          // not retried; an unreadable body surfaces as a SyntaxError and is.
+          const answer = parseAnswer(await res.json());
           if (answer) return { ok: true, answer };
         }
         if (attempt < maxAttempts - 1) { await sleep(jitter(attempt, base, max)); continue; }

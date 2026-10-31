@@ -108,6 +108,14 @@ describe('an outage follows onUnavailable', () => {
     expect(server.requestCount()).toBe(1);
   });
 
+  it('a reply that stalls after its headers also resolves at the content timeout and is never retried', async () => {
+    const server = await withServer(startStubServer((_q, res) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.write('{"action":'); }));
+    const guard = new AgentGuard({ apiKey: 'mx_k', gatewayUrl: server.url, contentTimeoutMs: 250, ...FAST });
+    const r = await guard.checkContent(TEXT, { direction: 'outbound', onUnavailable: 'block' });
+    expect(r.unavailable).toBe(true);
+    expect(server.requestCount()).toBe(1);
+  });
+
   it('nothing is reachable at all (connection refused)', async () => {
     const s = await startStubServer(() => {});
     const url = s.url;
