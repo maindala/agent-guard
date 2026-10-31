@@ -162,6 +162,26 @@ Only MCP SDK and Vercel AI SDK are covered (a Gate 1 scope decision) — LangCha
 OpenAI Agents SDK are explicitly out of scope. Runnable, fully offline examples for all of the
 above live in [`examples/`](./examples) (`npm run examples`).
 
+## Content check — `checkContent`
+
+Your organization may have configured a content check. `checkContent()` sends text to the gateway before you use it and returns
+what to do with it: `pass`, `redact` (use the returned text) or `block`. If your organization has not configured one, the answer is a
+plain `pass`.
+
+```ts
+const r = await guard.checkContent(prompt, { direction: 'outbound', onUnavailable: 'block' });
+if (r.action === 'block') throw new Error(`not sent: ${r.reason}`);
+send(r.text); // always use r.text: the input on pass, the redacted text on redact
+```
+
+- `direction` is `'outbound'` for text you are about to send and `'inbound'` for text you received.
+- **`onUnavailable` is required, and there is no default.** It says what happens to the text when the gateway cannot answer
+  (unreachable, erroring, rate limited, timed out): `'block'` refuses it, `'allow'` lets it through unchecked. Both set
+  `unavailable: true` on the result. Leaving it out throws.
+- The wait for an answer is `contentTimeoutMs` (default 20 seconds, longer than `timeoutMs` because text takes longer to check than a
+  tool name). Retry settings are the same as `checkTool()`; the circuit breaker is its own, so a problem here never changes tool checks.
+- The text is sent to the gateway for the check, in memory. This package never logs it, caches it or keeps it.
+
 ## Metadata-only telemetry, by construction
 
 `pushToolCallTelemetry()` never forwards more than the documented event shape (`kind`, `toolName`,
@@ -182,6 +202,7 @@ request is sent and a warning is logged naming what was dropped, rather than bei
 - `wrapTools(tools, options?): GovernableTool[]` — `wrapTool()` over a whole collection.
 - `coverageReport(registered, wrapped): { totalRegistered, totalWrapped, ungoverned }` — names
   registered-but-ungoverned tools. Pure; no network call.
+- `checkContent(text, { direction, onUnavailable }): Promise<{ action, text, reason?, unavailable? }>` — check text bound for, or returned by, an LLM call. `onUnavailable` is required. See "Content check" above.
 - `pushTelemetry(usage): Promise<void>` — push LLM usage/cost telemetry (requires `apiKey` + `orgSlug`). Never throws.
 - `pushToolCallTelemetry(token, event): Promise<void>` — push one metadata-only tool-call/A2A event to your free tail. Takes its own `mt_` token; works with zero org config. Never throws.
 - `@maindala/agent-guard/adapters/mcp` → `wrapMcpTool(guard, toolName, handler)` — MCP SDK adapter.
