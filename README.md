@@ -182,6 +182,40 @@ send(r.text); // always use r.text: the input on pass, the redacted text on reda
   tool name). Retry settings are the same as `checkTool()`; the circuit breaker is its own, so a problem here never changes tool checks.
 - The text is sent to the gateway for the check, in memory. This package never logs it, caches it or keeps it.
 
+## Making a governed call — `callTool`
+
+`callTool()` sends one tool call through your organization's gateway (`POST /broker/call`) and returns a typed result. If your
+organization holds that tool for a person to approve, it can also wait for the decision and send the call once more.
+
+```ts
+const r = await guard.callTool(
+  { serviceSlug: 'github-mcp-server', tool: 'create_issue', arguments: { owner, repo, title }, connectionId },
+  { waitForApproval: { timeoutMs: 600_000, pollMs: 5_000 } },
+);
+switch (r.status) {
+  case 'completed':        use(r.result); break;
+  case 'pending_approval': remember(r.approvalId); break;      // held, and not decided within your wait
+  case 'denied':           console.log(`rejected by ${r.decidedBy}: ${r.note}`); break;
+  case 'expired':          console.log('nobody decided in time'); break;
+  case 'refused':          console.log(r.reason, r.message); break;
+}
+```
+
+- **Results.** `completed` (the tool ran; `result` is what the gateway returned, after any redaction your organization configured),
+  `pending_approval` (held, nothing ran), `denied` (a person rejected it), `expired` (nobody decided), `refused` (the gateway said no, or
+  could not finish; `reason` is the gateway's own code, such as `not_in_allow_list` or `target_auth_failed`).
+- **Without `waitForApproval`** a held call comes back as `pending_approval` with its `approvalId` and `expiresAt`, and you decide what to do.
+- **With it,** the client checks every `pollMs` (default 5 seconds) until the approval is decided, expires, or `timeoutMs` (default 10 minutes)
+  passes, whichever is first. If it is approved, the **same** call goes out once more with the approval id.
+- **A call is never sent twice for any other reason.** There is no retry. A vendor failure after dispatch (`reason: 'upstream_failed'`), a
+  timeout or an unreachable gateway returns `refused` with `maybeRan: true`: the call may already have run, so it is yours to check, not the
+  client's to repeat. An approval is pinned to the exact arguments, is single-use, and is checked again by the gateway on the re-send.
+- **It does not fail open.** Unlike `checkTool()`, there is no `failMode`: the call itself is what is governed, so an unreachable gateway
+  returns `refused`, never a pass. Needs the `mx_` key and a gateway that has `/broker/approvals/:id` (any current one).
+- `timeoutMs` in the options (default 60 seconds) bounds each request to the gateway. `connectionId` is the vault connection that holds the
+  vendor token; without one the gateway sends the vendor no credential.
+- The arguments are never logged or kept by this package.
+
 ## Metadata-only telemetry, by construction
 
 `pushToolCallTelemetry()` never forwards more than the documented event shape (`kind`, `toolName`,
@@ -203,6 +237,7 @@ request is sent and a warning is logged naming what was dropped, rather than bei
 - `coverageReport(registered, wrapped): { totalRegistered, totalWrapped, ungoverned }` — names
   registered-but-ungoverned tools. Pure; no network call.
 - `checkContent(text, { direction, onUnavailable }): Promise<{ action, text, reason?, unavailable? }>` — check text bound for, or returned by, an LLM call. `onUnavailable` is required. See "Content check" above.
+- `callTool({ serviceSlug, tool, arguments?, connectionId? }, { waitForApproval?, timeoutMs? }): Promise<CallToolResult>` — one governed call through `/broker/call`, optionally waiting for a human approval and sending it once more. Never retries. See "Making a governed call" above.
 - `pushTelemetry(usage): Promise<void>` — push LLM usage/cost telemetry (requires `apiKey` + `orgSlug`). Never throws.
 - `pushToolCallTelemetry(token, event): Promise<void>` — push one metadata-only tool-call/A2A event to your free tail. Takes its own `mt_` token; works with zero org config. Never throws.
 - `@maindala/agent-guard/adapters/mcp` → `wrapMcpTool(guard, toolName, handler)` — MCP SDK adapter.

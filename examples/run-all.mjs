@@ -5,7 +5,7 @@
 // @modelcontextprotocol/sdk and `ai` packages), not just that `tsc` succeeded.
 //
 // NOTE ON SCOPE: this covers the examples added for OAE-10/OAE-11 (wrapTool/wrapTools/
-// coverageReport + the MCP and Vercel AI SDK adapters) — 07 through 09. Examples 01-06 for the
+// coverageReport + the MCP and Vercel AI SDK adapters) — 07 through 09 — and 10 (callTool). Examples 01-06 for the
 // pre-existing checkTool/applyDlp/checkAndRedact/pushToolCallTelemetry/fail-mode surface were
 // built directly in this public repo and were never copied back into
 // this monorepo — this file only runs what actually lives here.
@@ -13,6 +13,7 @@ const examples = [
   './07-wrap-tool.mjs',
   './08-mcp-adapter.mjs',
   './09-vercel-ai-adapter.mjs',
+  './10-call-tool.mjs',
 ];
 
 let failed = false;
