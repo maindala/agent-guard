@@ -5,6 +5,16 @@ All notable changes to `@maindala/agent-guard` are documented here. Format follo
 against what is actually live on npm (`npm view @maindala/agent-guard versions`), not
 just what shipped in source.
 
+## [1.2.0] — 2026-11-03
+
+### Added
+- **`callTool({ serviceSlug, tool, arguments, connectionId }, { waitForApproval })`.** Makes one governed tool call through the gateway's
+  `/broker/call` and returns a typed result: `completed`, `pending_approval`, `denied`, `expired` or `refused` (with the gateway's own
+  `reason` code). A call your organization holds for a person comes back as `pending_approval`; with `waitForApproval` (`timeoutMs`
+  default 10 minutes, `pollMs` default 5 seconds) the client waits for the decision and, if approved, sends the same call once more with the
+  approval id. It never sends a call twice for any other reason: a vendor failure, a timeout or an unreachable gateway returns `refused`
+  with `maybeRan: true`. It does not fail open. The arguments are never logged or kept. Needs an `mx_` key.
+
 ## [1.1.0] — 2026-10-31
 
 ### Added

@@ -5,6 +5,8 @@
 
 import { ContentCheckClient, type ContentCheckOptions, type ContentCheckResult } from './content-check.js';
 export type { ContentCheckOptions, ContentCheckResult, ContentDirection, OnUnavailable } from './content-check.js';
+import { CallToolClient, type CallToolOptions, type CallToolRequest, type CallToolResult } from './call-tool.js';
+export type { CallToolOptions, CallToolRequest, CallToolResult, WaitForApproval } from './call-tool.js';
 
 export interface DlpPattern {
   name:        string;
@@ -247,6 +249,7 @@ export class AgentGuard {
   private consecutiveFailures = 0;
 
   private readonly contentChecker: ContentCheckClient;
+  private readonly toolCaller: CallToolClient;
 
   constructor(private readonly config: AgentGuardConfig) {
     this.gatewayUrl = config.gatewayUrl?.replace(/\/$/, '') ?? 'https://mcp.maindala.com';
@@ -262,6 +265,7 @@ export class AgentGuard {
       ...(config.breakerThreshold !== undefined ? { breakerThreshold: config.breakerThreshold } : {}),
       ...(config.breakerCooldownMs !== undefined ? { breakerCooldownMs: config.breakerCooldownMs } : {}),
     });
+    this.toolCaller = new CallToolClient({ ...(config.apiKey !== undefined ? { apiKey: config.apiKey } : {}), gatewayUrl: this.gatewayUrl });
   }
 
   // Resolves the effective fail mode for a given tool: a per-tool override
@@ -448,6 +452,14 @@ export class AgentGuard {
   // Always use `result.text`, and treat action 'block' as "do not send / do not use". The text is never logged or kept by this SDK.
   async checkContent(text: string, options: ContentCheckOptions): Promise<ContentCheckResult> {
     return this.contentChecker.check(text, options);
+  }
+
+  // Makes one governed tool call through the gateway (POST /broker/call) and returns a typed result: 'completed', 'pending_approval',
+  // 'denied', 'expired' or 'refused'. A call your organization holds for a person is returned as 'pending_approval'; pass
+  // `waitForApproval` to wait for the decision and send it again once if approved. The call is never sent twice for any other reason,
+  // and unlike checkTool() it never fails open: if the gateway cannot be reached the result is 'refused', not a pass.
+  async callTool(request: CallToolRequest, options?: CallToolOptions): Promise<CallToolResult> {
+    return this.toolCaller.call(request, options);
   }
 
   // Apply DLP redaction patterns to a string (e.g. tool response text).
